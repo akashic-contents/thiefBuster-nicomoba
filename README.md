@@ -13,8 +13,8 @@
 TypeScriptで作られています。以下のコマンドで、このリポジトリをクローンしてビルドしてください。
 
 ```
-git clone git@github.com:akashic-contents/thiefBuster.git
-cd thiefBuster
+git clone git@github.com:akashic-contents/thiefBuster-nicomoba.git
+cd thiefBuster-nicomoba
 npm install
 npm run init
 npm run build
