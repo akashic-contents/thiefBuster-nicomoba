@@ -99,7 +99,7 @@ export class ThiefBuster extends GameBase {
 		);
 
 		// 赤数字
-		const imgStgNum2: g.Asset = this.scene.assets[AssetInfo.numRed.img];
+		const imgStgNum2 = this.scene.asset.getImageById(AssetInfo.numRed.img);
 		const jsonStgNum2: SpriteFrameMap = JSON.parse(
 			(<g.TextAsset>this.scene.assets[AssetInfo.numRed.json]).data
 		);
@@ -118,17 +118,17 @@ export class ThiefBuster extends GameBase {
 		);
 		const stgNum2W: number = AssetInfo.numRed.fontWidth;
 		const stgNum2H: number = AssetInfo.numRed.fontHeight;
-		const fontStgNum2: g.BitmapFont = new g.BitmapFont(
-			imgStgNum2,
-			fontmapStgNum2,
-			stgNum2W,
-			stgNum2H,
-			fontmapStgNum2[charCode0]
-		);
+		const fontStgNum2: g.BitmapFont = new g.BitmapFont({
+			src: imgStgNum2,
+			map: fontmapStgNum2,
+			defaultGlyphWidth: stgNum2W,
+			defaultGlyphHeight: stgNum2H,
+			missingGlyph: fontmapStgNum2[charCode0]
+		});
 		game.vars.scenedata.fontStgNum2 = fontStgNum2;
 
 		// 青数字
-		const imgStgNum3: g.Asset = this.scene.assets[AssetInfo.numBlue.img];
+		const imgStgNum3 = this.scene.asset.getImageById(AssetInfo.numBlue.img);
 		const jsonStgNum3: SpriteFrameMap = JSON.parse(
 			(<g.TextAsset>this.scene.assets[AssetInfo.numBlue.json]).data
 		);
@@ -147,13 +147,13 @@ export class ThiefBuster extends GameBase {
 		);
 		const stgNum3W: number = AssetInfo.numBlue.fontWidth;
 		const stgNum3H: number = AssetInfo.numBlue.fontHeight;
-		const fontStgNum3: g.BitmapFont = new g.BitmapFont(
-			imgStgNum3,
-			fontmapStgNum3,
-			stgNum3W,
-			stgNum3H,
-			fontmapStgNum2[charCode0]
-		);
+		const fontStgNum3: g.BitmapFont = new g.BitmapFont({
+			src: imgStgNum3,
+			map: fontmapStgNum3,
+			defaultGlyphWidth: stgNum3W,
+			defaultGlyphHeight: stgNum3H,
+			missingGlyph: fontmapStgNum2[charCode0]
+		});
 		game.vars.scenedata.fontStgNum3 = fontStgNum3;
 
 		// レイヤー
@@ -302,8 +302,8 @@ export class ThiefBuster extends GameBase {
 			}
 		}
 		this.timerLabel.setTimeCount(timeLimit);
-		this.timerLabel.timeCaution.handle(this, this.onTimeCaution);
-		this.timerLabel.timeCautionCancel.handle(this, this.onTimeCautionCancel);
+		this.timerLabel.timeCaution.add(this.handleTimeCaution, this);
+		this.timerLabel.timeCautionCancel.add(this.handleTimeCautionCancel, this);
 
 		this.wkman.init();
 		this.item.init();
@@ -337,20 +337,19 @@ export class ThiefBuster extends GameBase {
 	 */
 	startGame(): void {
 		this.inGame = true;
-		this.scene.pointDownCapture.handle(this, this.onTouch);
+		this.scene.onPointDownCapture.add(this.handleTouch, this);
 
 		const len: number = GameParameterReader.thiefPopRates.length;
-		this.retTimeIdentifier = this.scene.setInterval(
-			(this.timerLabel.getTimeCount() * 1000) / len, // ゲーム制限時間のフェーズ数分の1ごと
-			this, // owner
-			(): void => {
+		this.retTimeIdentifier = this.scene.setInterval((): void => {
 				if (this.popPhase < GameParameterReader.thiefPopRates.length - 1) {
 					this.popPhase += 1;
 					this.cntPopIndexOnPhase = 0;
 					// console.log("sec" + this.timerLabel.getTimeCount() + " popPhase：" + (this.popPhase + 1));
 					// console.table(define.THIEF_POP_RATES[this.popPhase].list);
 				}
-			}
+			},
+			(this.timerLabel.getTimeCount() * 1000) / len, // ゲーム制限時間のフェーズ数分の1ごと
+			this // owner
 		);
 	}
 
@@ -360,8 +359,8 @@ export class ThiefBuster extends GameBase {
 	 * @override
 	 */
 	hideContent(): void {
-		this.timerLabel.timeCaution.removeAll(this);
-		this.timerLabel.timeCautionCancel.removeAll(this);
+		this.timerLabel.timeCaution.removeAll({ owner: this });
+		this.timerLabel.timeCautionCancel.removeAll({ owner: this });
 		super.hideContent();
 	}
 
@@ -370,7 +369,7 @@ export class ThiefBuster extends GameBase {
 	 * ゲーム画面でない期間には呼ばれない。
 	 * @override
 	 */
-	onUpdate(): void {
+	handleUpdate(): void {
 		if (this.inGame) {
 			this.timerLabel.tick();
 			if (this.timerLabel.getTimeCount() === 0) {
@@ -384,8 +383,8 @@ export class ThiefBuster extends GameBase {
 			// アイテム出現処理
 			this.popItemController();
 
-			this.wkman.update();
-			this.score.onUpdate();
+			this.wkman.handleUpdate();
+			this.score.handleUpdate();
 
 			// 弾ループ
 			for (let i = 0; i < this.bullets.length; ++i) {
@@ -439,21 +438,21 @@ export class ThiefBuster extends GameBase {
 	 * @return {boolean} trueで終了
 	 * @override
 	 */
-	onUpdatePreGameGuide(): boolean {
+	handleUpdatePreGameGuide(): boolean {
 		return true;
 	}
 
 	/**
 	 * TimerLabel#timeCautionのハンドラ
 	 */
-	private onTimeCaution(): void {
+	private handleTimeCaution(): void {
 		this.timeCaution.fire();
 	}
 
 	/**
 	 * TimerLabel#timeCautionCancelのハンドラ
 	 */
-	private onTimeCautionCancel(): void {
+	private handleTimeCautionCancel(): void {
 		this.timeCautionCancel.fire();
 	}
 
@@ -465,7 +464,7 @@ export class ThiefBuster extends GameBase {
 	 */
 	private finishGame(opt_isLifeZero: boolean = false): void {
 		this.inGame = false;
-		this.scene.pointDownCapture.removeAll(this);
+		this.scene.pointDownCapture.removeAll({ owner: this});
 		this.scene.clearInterval(this.retTimeIdentifier);
 
 		for (let i = 0; i < this.thieves.length; ++i) { // 泥棒ループ
@@ -486,11 +485,11 @@ export class ThiefBuster extends GameBase {
 	}
 
 	/**
-	 * Scene#pointDownCaptureのハンドラ
+	 * Scene#onPointDownCaptureのハンドラ
 	 * @param  {g.PointDownEvent} _e イベントパラメータ
 	 * @return {boolean}             ゲーム終了時はtrueを返す
 	 */
-	private onTouch(_e: g.PointDownEvent): boolean {
+	private handleTouch(_e: g.PointDownEvent): boolean {
 		if (!this.inGame) {
 			return true;
 		}
@@ -528,10 +527,9 @@ export class ThiefBuster extends GameBase {
 		entityUtil.appendEntity(doorActor, this.layerBuilding);
 		doorActor.play(AsaInfo.door.anim.main, 0, false, 1.0);
 		doorActor.pause = true;
-		doorActor.update.handle(doorActor, (): boolean => {
+		doorActor.onUpdate.add(() => {
 			doorActor.modified();
 			doorActor.calc();
-			return false;
 		});
 		return doorActor;
 	}
@@ -546,7 +544,7 @@ export class ThiefBuster extends GameBase {
 		}
 		let len: number = _ary.length - 1;
 		while (len) {
-			const randWk: number = this.scene.game.random[0].get(0, len);
+			const randWk: number = Math.floor(this.scene.game.random.generate() * (len + 1));
 			const wk: number = _ary[len];
 			_ary[len] = _ary[randWk];
 			_ary[randWk] = wk;

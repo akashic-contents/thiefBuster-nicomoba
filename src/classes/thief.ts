@@ -53,12 +53,12 @@ export class Thief {
 
 		let thiefType: define.ThiefType;
 		if (typeof _type === "undefined") { // 引数なければ
-			thiefType = this.game.random[0].get(0, define.NUM_OF_THIEF_TYPE - 1); // ランダム
+			thiefType = Math.floor(this.game.random.generate() * define.NUM_OF_THIEF_TYPE); // ランダム
 		} else {
 			thiefType = _type;
 		}
 		if (typeof _floor === "undefined") { // 引数なければ
-			this.indexPosY = this.game.random[0].get(0, 2);
+			this.indexPosY = Math.floor(this.game.random.generate() * 3);
 		} else {
 			this.indexPosY = _floor;
 		}
@@ -90,7 +90,7 @@ export class Thief {
 		this.escapeStartTrigger = new g.Trigger<void>(); // 逃げ切り用
 
 		// 周りの状況に限らずアニメの更新と移動を行う
-		this.spr.update.handle(this, this.update);
+		this.spr.onUpdate.add(this.handleUpdate, this);
 	}
 
 	/**
@@ -109,7 +109,7 @@ export class Thief {
 	 * ゲーム中の更新処理
 	 * @return {boolean} 通常falseを返す
 	 */
-	update(): boolean {
+	handleUpdate(): boolean {
 		if (!this.spr.destroyed()) {
 			this.spr.x += this.moveX;
 			this.animeController();
@@ -197,7 +197,7 @@ export class Thief {
 		this.spr.play(_animetype, 0, false, 1.0);
 		// ドアインアニメへの変更要請ありました
 		if (this.spr.animation.name === this.animeTypes.in) {
-			this.escapeStartTrigger.handle((): boolean => { // 逃げ切りトリガー設置
+			this.escapeStartTrigger.add((): boolean => { // 逃げ切りトリガー設置
 				this.flgInDoor = true; // 逃げ切りフラグオン
 				return true;
 			});
@@ -348,13 +348,12 @@ export class Thief {
 		actor.moveTo(pos.x, pos.y - (this.spr.height / 2)); // 中心に補正
 		entityUtil.appendEntity(actor, this.layer);
 		actor.play(AsaInfo.effect.anim.main, 0, false, 1.0); // ループなしで再生
-		actor.update.handle(actor, (): boolean => { // 勝手に更新・勝手に消滅
+		actor.onUpdate.add(() => { // 勝手に更新・勝手に消滅
 			actor.modified();
 			actor.calc();
 			if (actor.currentFrame >= actor.animation.frameCount - 1) { // 自身を破棄
 				actor.destroy();
 			}
-			return false;
 		});
 	}
 }
