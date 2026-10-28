@@ -51,6 +51,9 @@
     "url": "https://github.com/akashic-contents/thiefBuster-nicomoba/issues"
   },
   "homepage": "https://github.com/akashic-contents/thiefBuster-nicomoba#readme",
+  "allowScripts": {
+    "canvas@2.11.2": true
+  },
   "devEngines": {
     "packageManager": {
       "name": "npm",
